@@ -1,0 +1,6 @@
+{
+    "python.linting.enabled": false,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "black",
+    "python.pythonPath": "E:\\Users\\MapleToon\\anaconda3\\envs\\example-based-explanation\\python.exe"
+}
