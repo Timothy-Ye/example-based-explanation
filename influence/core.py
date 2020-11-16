@@ -48,26 +48,26 @@ def get_hvp(vector, model, training_samples, training_labels, loss_fn, scaling):
         grads,
         model.trainable_variables,
         output_gradients=vector,
-        unconnected_gradient=tf.UnconnectedGradients.ZERO,
+        unconnected_gradients=tf.UnconnectedGradients.ZERO,
     )
 
     return hvp
 
 
-# Calculate the gradient of loss over a training point w.r.t. model parameters.
+# Calculate the gradient of loss at a training point w.r.t. model parameters.
 def get_training_gradient(model, training_sample, training_label, loss_fn, scaling):
 
     with tf.GradientTape() as tape:
         model_label = model(training_sample)
         loss = loss_fn(training_label, model_label) * scaling
 
-    training_grad = tape.gradient(
+    training_gradient = tape.gradient(
         loss,
         model.trainable_variables,
         unconnected_gradients=tf.UnconnectedGradients.ZERO,
     )
 
-    return training_grad
+    return training_gradient
 
 
 # Return the loss function to feed into Conjugate Gradient optimisation.
@@ -127,5 +127,123 @@ def get_cg_jac_fn(
 
         return flat_hvp - flat_training_gradient
 
-    return cg_loss_fn
+    return cg_jac_fn
 
+
+# Return the inverse HVP of loss Hessian and training gradient using Conjugate Gradient method.
+def get_inverse_hvp_cg(
+    model,
+    training_samples,
+    training_labels,
+    loss_fn,
+    scaling,
+    damping,
+    training_gradient,
+    verbose,
+):
+
+    cg_loss_fn = get_cg_loss_fn(
+        model,
+        training_samples,
+        training_labels,
+        loss_fn,
+        scaling,
+        damping,
+        training_gradient,
+    )
+    cg_jac_fn = get_cg_jac_fn(
+        model,
+        training_samples,
+        training_labels,
+        loss_fn,
+        scaling,
+        damping,
+        training_gradient,
+    )
+
+    # Use training gradient as starting point for CG.
+    flat_training_gradient = np.concatenate(
+        [tf.reshape(t, [-1]) for t in training_gradient]
+    )
+
+    cg_callback = None
+    if verbose:
+
+        def verbose_cg_callback(xk):
+            print(
+                "CG Loss: ",
+                cg_loss_fn(xk),
+                "; CG Jac Norm:",
+                np.linalg.norm(cg_jac_fn(xk)),
+            )
+            return
+
+        cg_callback = verbose_cg_callback
+
+    result = scipy.optimize.minimize(
+        cg_loss_fn,
+        flat_training_gradient,
+        method="CG",
+        jac=cg_jac_fn,
+        callback=cg_callback,
+        options={"maxiter": 100, "disp": verbose},
+    )
+
+    return result.x
+
+
+# Calculate the gradient of loss at a test point w.r.t. model parameters.
+def get_test_gradient(model, test_sample, test_label, loss_fn):
+
+    with tf.GradientTape() as tape:
+        model_label = model(test_sample)
+        loss = loss_fn(test_label, model_label)
+
+    test_gradient = tape.gradient(
+        loss,
+        model.trainable_variables,
+        unconnected_gradients=tf.UnconnectedGradients.ZERO,
+    )
+
+    return test_gradient
+
+
+# Overall function for finding influence at training and test point pair.
+def get_influence(
+    model,
+    training_samples,
+    training_labels,
+    training_sample,
+    training_label,
+    test_sample,
+    test_label,
+    loss_fn=None,
+    scaling=1.0,
+    damping=0.0,
+    verbose=False,
+):
+
+    if loss_fn is None:
+        loss_fn = model.loss
+
+    training_gradient = get_training_gradient(
+        model, training_sample, training_label, loss_fn, scaling
+    )
+
+    test_gradient = get_test_gradient(model, test_sample, test_label, loss_fn)
+    flat_test_gradient = np.concatenate([tf.reshape(t, [-1]) for t in test_gradient])
+
+    inverse_hvp = get_inverse_hvp_cg(
+        model,
+        training_samples,
+        training_labels,
+        loss_fn,
+        scaling,
+        damping,
+        training_gradient,
+        verbose,
+    )
+
+    influence = np.dot(inverse_hvp, flat_test_gradient)
+
+    return influence
