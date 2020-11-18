@@ -209,7 +209,7 @@ def get_test_gradient(model, test_sample, test_label, loss_fn):
 
 
 # Overall function for finding influence at training and test point pair.
-def get_influence(
+def get_influence_on_loss(
     model,
     training_samples,
     training_labels,
@@ -244,6 +244,6 @@ def get_influence(
         verbose,
     )
 
-    influence = np.dot(inverse_hvp, flat_test_gradient)
+    influence_on_loss = np.dot(inverse_hvp, flat_test_gradient)
 
-    return influence
+    return influence_on_loss
