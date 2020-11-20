@@ -18,7 +18,7 @@ class InfluenceModel(object):
         training_labels,
         upweighted_training_input,
         upweighted_training_label,
-        loss_fn=None,
+        loss_fn,
         scaling=1.0,
         damping=0.0,
         verbose=False,
@@ -28,12 +28,7 @@ class InfluenceModel(object):
         self.training_labels = training_labels
         self.upweighted_training_input = upweighted_training_input
         self.upweighted_training_label = upweighted_training_label
-
-        if loss_fn is None:
-            self.loss_fn = model.loss
-        else:
-            self.loss_fn = loss_fn
-
+        self.loss_fn = loss_fn
         self.scaling = scaling
         self.damping = damping
         self.verbose = verbose
