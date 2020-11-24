@@ -22,6 +22,8 @@ class InfluenceModel(object):
         scaling=1.0,
         damping=0.0,
         verbose=False,
+        dtype=np.float32,
+        gtol=1e-05,
     ):
         self.model = model
         self.training_inputs = training_inputs
@@ -32,6 +34,8 @@ class InfluenceModel(object):
         self.scaling = scaling
         self.damping = damping
         self.verbose = verbose
+        self.dtype = dtype
+        self.gtol = gtol
 
         self.training_gradient = None
         self.inverse_hvp = None
@@ -128,7 +132,7 @@ class InfluenceModel(object):
         def cg_loss_fn(x):
 
             # Need to reshape vector before passing into get_hvp().
-            reshaped_vector = self.reshape_flat_vector(x)
+            reshaped_vector = self.reshape_flat_vector(x.astype(self.dtype))
 
             hvp = self.get_hvp(reshaped_vector)
 
@@ -142,7 +146,7 @@ class InfluenceModel(object):
         def cg_jac_fn(x):
 
             # Need to reshape vector before passing into get_hvp().
-            reshaped_vector = self.reshape_flat_vector(x)
+            reshaped_vector = self.reshape_flat_vector(x.astype(self.dtype))
 
             hvp = self.get_hvp(reshaped_vector)
             flat_hvp = (
@@ -172,7 +176,7 @@ class InfluenceModel(object):
             method="CG",
             jac=cg_jac_fn,
             callback=cg_callback,
-            options={"maxiter": 100, "disp": self.verbose},
+            options={"gtol": self.gtol, "maxiter": 100, "disp": self.verbose},
         )
 
         self.inverse_hvp = result.x
@@ -238,3 +242,20 @@ class InfluenceModel(object):
         )
 
         return l_relatif
+
+    def get_new_parameters(self, epsilon=None):
+        """Calculates the approximated new parameters with training point up-weighted by epsilon."""
+
+        # By default, we use epsilon = -1/n, which is equivalent to leave-one-out retraining.
+        if epsilon is None:
+            epsilon = -1.0 / len(self.training_inputs)
+
+        flat_change_in_parameters = self.get_inverse_hvp() * epsilon
+        flat_parameters = np.concatenate(
+            [tf.reshape(t, [-1]) for t in self.model.trainable_variables]
+        )
+
+        flat_new_parameters = flat_change_in_parameters + flat_parameters
+        new_parameters = self.reshape_flat_vector(flat_new_parameters)
+
+        return new_parameters
