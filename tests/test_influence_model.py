@@ -25,9 +25,8 @@ class ConstantModelTestCase(unittest.TestCase):
             ConstantModel(),
             tf.constant([0.0]),
             tf.constant([0.0]),
-            tf.constant([0.0]),
-            tf.constant([0.0]),
             loss_fn,
+            0,
         )
 
     def test_get_hvp(self):
@@ -131,9 +130,8 @@ class HighPrecisionTestCase(unittest.TestCase):
             ConstantModel(),
             tf.constant([0.0], dtype=tf.float64),
             tf.constant([0.0], dtype=tf.float64),
-            tf.constant([0.0], dtype=tf.float64),
-            tf.constant([0.0], dtype=tf.float64),
             loss_fn,
+            0,
             dtype=np.float64,
         )
 

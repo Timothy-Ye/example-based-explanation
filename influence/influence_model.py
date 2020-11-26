@@ -16,9 +16,9 @@ class InfluenceModel(object):
         model,
         training_inputs,
         training_labels,
-        upweighted_training_input,
-        upweighted_training_label,
         loss_fn,
+        upweighted_training_idx,
+        parameters=None,
         scaling=1.0,
         damping=0.0,
         verbose=False,
@@ -28,9 +28,16 @@ class InfluenceModel(object):
         self.model = model
         self.training_inputs = training_inputs
         self.training_labels = training_labels
-        self.upweighted_training_input = upweighted_training_input
-        self.upweighted_training_label = upweighted_training_label
         self.loss_fn = loss_fn
+
+        self.upweighted_training_input = training_inputs[upweighted_training_idx]
+        self.upweighted_training_label = training_labels[upweighted_training_idx]
+
+        if parameters is None:
+            self.parameters = model.trainable_variables
+        else:
+            self.parameters = parameters
+
         self.scaling = scaling
         self.damping = damping
         self.verbose = verbose
@@ -44,9 +51,7 @@ class InfluenceModel(object):
         """Takes a flat vector and reshapes it to a tensor with the same shape as the model's trainable variables."""
 
         # Check the overall lengths match.
-        length = np.sum(
-            [len(tf.reshape(t, [-1])) for t in self.model.trainable_variables]
-        )
+        length = np.sum([len(tf.reshape(t, [-1])) for t in self.parameters])
         if len(flat_vector) != length:
             raise ValueError(
                 "Length of flat vector is "
@@ -59,7 +64,7 @@ class InfluenceModel(object):
         # Reshape flat_vector.
         reshaped_flat_vector = []
         i = 0
-        for t in self.model.trainable_variables:
+        for t in self.parameters:
             var_length = len(tf.reshape(t, [-1]))
             reshaped_flat_vector.append(
                 tf.reshape(flat_vector[i : i + var_length], tf.shape(t))
@@ -81,13 +86,13 @@ class InfluenceModel(object):
 
             grads = inner_tape.gradient(
                 loss,
-                self.model.trainable_variables,
+                self.parameters,
                 unconnected_gradients=tf.UnconnectedGradients.ZERO,
             )
 
         hvp = outer_tape.gradient(
             grads,
-            self.model.trainable_variables,
+            self.parameters,
             output_gradients=vector,
             unconnected_gradients=tf.UnconnectedGradients.ZERO,
         )
@@ -101,15 +106,17 @@ class InfluenceModel(object):
             return self.training_gradient
 
         with tf.GradientTape() as tape:
-            predicted_label = self.model(self.upweighted_training_input)
+            predicted_label = self.model(np.array([self.upweighted_training_input]))
             loss = (
-                self.loss_fn(self.upweighted_training_label, predicted_label)
+                self.loss_fn(
+                    np.array([self.upweighted_training_label]), predicted_label
+                )
                 * self.scaling
             )
 
         training_gradient = tape.gradient(
             loss,
-            self.model.trainable_variables,
+            self.parameters,
             unconnected_gradients=tf.UnconnectedGradients.ZERO,
         )
 
@@ -187,12 +194,12 @@ class InfluenceModel(object):
         """Calculates the gradient of loss at a test point w.r.t. trainable variables."""
 
         with tf.GradientTape() as tape:
-            predicted_label = self.model(test_input)
-            loss = self.loss_fn(test_label, predicted_label)
+            predicted_label = self.model(np.array([test_input]))
+            loss = self.loss_fn(np.array([test_label]), predicted_label)
 
         test_gradient = tape.gradient(
             loss,
-            self.model.trainable_variables,
+            self.parameters,
             unconnected_gradients=tf.UnconnectedGradients.ZERO,
         )
 
@@ -251,9 +258,7 @@ class InfluenceModel(object):
             epsilon = -1.0 / len(self.training_inputs)
 
         flat_change_in_parameters = self.get_inverse_hvp() * epsilon
-        flat_parameters = np.concatenate(
-            [tf.reshape(t, [-1]) for t in self.model.trainable_variables]
-        )
+        flat_parameters = np.concatenate([tf.reshape(t, [-1]) for t in self.parameters])
 
         flat_new_parameters = flat_change_in_parameters + flat_parameters
         new_parameters = self.reshape_flat_vector(flat_new_parameters)
