@@ -67,7 +67,7 @@ class ConstantModelTestCase(unittest.TestCase):
             self.influence_model.get_influence_on_loss(
                 tf.constant([0.0]), tf.constant([0.0])
             ),
-            26.0,
+            -26.0,
             places=5,
         )
         pass
@@ -78,7 +78,7 @@ class ConstantModelTestCase(unittest.TestCase):
             self.influence_model.get_theta_relatif(
                 tf.constant([0.0]), tf.constant([0.0])
             ),
-            26.0 / math.sqrt(13.0),
+            -26.0 / math.sqrt(13.0),
             places=5,
         )
         pass
@@ -87,16 +87,7 @@ class ConstantModelTestCase(unittest.TestCase):
         # Carry-over precision loss from get_inverse_hvp().
         self.assertAlmostEqual(
             self.influence_model.get_l_relatif(tf.constant([0.0]), tf.constant([0.0])),
-            26.0 / math.sqrt(26.0),
-            places=5,
-        )
-        pass
-
-    def test_get_l_relatif(self):
-        # Carry-over precision loss from get_inverse_hvp().
-        self.assertAlmostEqual(
-            self.influence_model.get_l_relatif(tf.constant([0.0]), tf.constant([0.0])),
-            26.0 / math.sqrt(26.0),
+            -26.0 / math.sqrt(26.0),
             places=5,
         )
         pass

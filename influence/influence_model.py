@@ -212,21 +212,14 @@ class InfluenceModel(object):
         flat_test_gradient = np.concatenate(
             [tf.reshape(t, [-1]) for t in test_gradient]
         )
-
-        influence_on_loss = np.dot(self.get_inverse_hvp(), flat_test_gradient)
+        influence_on_loss = -np.dot(self.get_inverse_hvp(), flat_test_gradient)
 
         return influence_on_loss
 
     def get_theta_relatif(self, test_input, test_label):
         """Calculates the theta-relative influence of the up-weighted training point on the loss at the given test point."""
 
-        test_gradient = self.get_test_gradient(test_input, test_label)
-        flat_test_gradient = np.concatenate(
-            [tf.reshape(t, [-1]) for t in test_gradient]
-        )
-
-        influence_on_loss = np.dot(self.get_inverse_hvp(), flat_test_gradient)
-
+        influence_on_loss = self.get_influence_on_loss(test_input, test_label)
         theta_relatif = influence_on_loss / np.linalg.norm(self.get_inverse_hvp())
 
         return theta_relatif
@@ -234,13 +227,7 @@ class InfluenceModel(object):
     def get_l_relatif(self, test_input, test_label):
         """Calculates the l-relative influence of the up-weighted training point on the loss at the given test point."""
 
-        test_gradient = self.get_test_gradient(test_input, test_label)
-        flat_test_gradient = np.concatenate(
-            [tf.reshape(t, [-1]) for t in test_gradient]
-        )
-
-        influence_on_loss = np.dot(self.get_inverse_hvp(), flat_test_gradient)
-
+        influence_on_loss = self.get_influence_on_loss(test_input, test_label)
         flat_training_gradient = np.concatenate(
             [tf.reshape(t, [-1]) for t in self.get_training_gradient()]
         )
