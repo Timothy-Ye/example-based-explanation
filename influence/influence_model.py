@@ -9,7 +9,6 @@ class InfluenceModel(object):
     """Class representing a TensorFlow model with some up-weighted training point."""
 
     # Maybe extend to up-weighted sets of points?
-    # Maybe allow specification of parameters?
 
     def __init__(
         self,
@@ -23,7 +22,10 @@ class InfluenceModel(object):
         damping=0.0,
         verbose=False,
         dtype=np.float32,
-        gtol=1e-05,
+        method="cg",
+        cg_tol=1e-05,
+        lissa_samples=1,
+        lissa_depth=1000,
     ):
         self.model = model
         self.training_inputs = training_inputs
@@ -42,7 +44,10 @@ class InfluenceModel(object):
         self.damping = damping
         self.verbose = verbose
         self.dtype = dtype
-        self.gtol = gtol
+        self.method = method
+        self.cg_tol = cg_tol
+        self.lissa_samples = lissa_samples
+        self.lissa_depth = lissa_depth
 
         self.training_gradient = None
         self.inverse_hvp = None
@@ -124,12 +129,8 @@ class InfluenceModel(object):
 
         return training_gradient
 
-    def get_inverse_hvp(self):
+    def get_inverse_hvp_cg(self):
         """Calculates the inverse HVP using Conjugate Gradient method."""
-        # Can use other methods in future?
-
-        if self.inverse_hvp is not None:
-            return self.inverse_hvp
 
         # Flattened training gradient used both for iteration, and as initial guess.
         flat_training_gradient = np.concatenate(
@@ -166,16 +167,17 @@ class InfluenceModel(object):
         if self.verbose:
 
             def verbose_cg_callback(xk):
+                distance = np.linalg.norm(cg_jac_fn(xk))
                 print(
-                    "CG Loss: ",
-                    cg_loss_fn(xk),
-                    "; CG Jac Norm:",
-                    np.linalg.norm(cg_jac_fn(xk)),
+                    "Current error:",
+                    distance,
+                    ", Relative error:",
+                    distance / np.linalg.norm(flat_training_gradient),
                 )
                 return
 
             cg_callback = verbose_cg_callback
-            print("Calculating Inverse HVP:")
+            print("Calculating inverse HVP using Conjugate Gradient method:")
 
         result = scipy.optimize.minimize(
             cg_loss_fn,
@@ -183,12 +185,126 @@ class InfluenceModel(object):
             method="CG",
             jac=cg_jac_fn,
             callback=cg_callback,
-            options={"gtol": self.gtol, "maxiter": 100, "disp": self.verbose},
+            options={"gtol": self.cg_tol, "maxiter": 100, "disp": self.verbose},
         )
 
-        self.inverse_hvp = result.x
-
         return result.x
+
+    def get_inverse_hvp_lissa(self):
+        """Approximates the inverse HVP using LiSSA method."""
+
+        if self.verbose:
+            print("Calculating inverse HVP using LiSSA method:")
+
+        flat_training_gradient = np.concatenate(
+            [tf.reshape(t, [-1]) for t in self.get_training_gradient()]
+        )
+        
+        estimates = []
+
+        for i in range(self.lissa_samples):
+            current_estimate = self.get_training_gradient()
+
+            for j in range(self.lissa_depth):
+                sample_idx = np.random.choice(range(len(self.training_inputs)))
+
+                # Calculate HVP using back-over-back auto-diff.
+                with tf.GradientTape() as outer_tape:
+                    with tf.GradientTape() as inner_tape:
+                        predicted_label = self.model(
+                            np.array([self.training_inputs[sample_idx]])
+                        )
+                        loss = (
+                            self.loss_fn(
+                                np.array([self.training_labels[sample_idx]]),
+                                predicted_label,
+                            )
+                            * self.scaling
+                        )
+
+                    grads = inner_tape.gradient(
+                        loss,
+                        self.parameters,
+                        unconnected_gradients=tf.UnconnectedGradients.ZERO,
+                    )
+
+                hvp = outer_tape.gradient(
+                    grads,
+                    self.parameters,
+                    output_gradients=current_estimate,
+                    unconnected_gradients=tf.UnconnectedGradients.ZERO,
+                )
+
+                # Form new estimate recursively.
+                current_estimate = [
+                    tf.subtract(
+                        tf.add(
+                            self.get_training_gradient()[k],
+                            tf.scalar_mul(1 - self.damping, current_estimate[k]),
+                        ),
+                        hvp[k],
+                    )
+                    for k in range(len(self.parameters))
+                ]
+
+            if self.verbose:
+                current_hvp = self.get_hvp(current_estimate)
+                flat_hvp = np.concatenate(
+                    [tf.reshape(t, [-1]) for t in current_hvp]
+                )
+                distance = np.linalg.norm(flat_hvp - flat_training_gradient)
+                print(
+                    "Sample",
+                    i+1,
+                    "with depth",
+                    self.lissa_depth,
+                    "- Current error:",
+                    distance,
+                    ", Relative error:",
+                    distance / np.linalg.norm(flat_training_gradient)
+                )
+
+            estimates.append(
+                np.concatenate([tf.reshape(t, [-1]) for t in current_estimate])
+            )
+
+        inverse_hvp = np.mean(estimates, axis=0)
+
+        if self.verbose:
+            current_hvp = self.get_hvp(self.reshape_flat_vector(inverse_hvp))
+            flat_hvp = np.concatenate(
+                [tf.reshape(t, [-1]) for t in current_hvp]
+            )
+            distance = np.linalg.norm(flat_hvp - flat_training_gradient)
+            print(
+                "Overall error:",
+                distance,
+                ", Overall relative error:",
+                distance / np.linalg.norm(flat_training_gradient)
+            )
+
+        return inverse_hvp
+
+    def get_inverse_hvp(self):
+        """Calculates the inverse HVP using the specified method."""
+
+        if self.inverse_hvp is not None:
+            return self.inverse_hvp
+
+        if self.method == "cg":
+            inverse_hvp = self.get_inverse_hvp_cg()
+        elif self.method == "lissa":
+            inverse_hvp = self.get_inverse_hvp_lissa()
+        else:
+            raise ValueError(
+                "'"
+                + self.method
+                + "' is not a supported method of calcuating the inverse HVP."
+            )
+
+        self.inverse_hvp = inverse_hvp
+
+        return inverse_hvp
 
     def get_test_gradient(self, test_input, test_label):
         """Calculates the gradient of loss at a test point w.r.t. trainable variables."""

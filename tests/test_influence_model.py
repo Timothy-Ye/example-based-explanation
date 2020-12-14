@@ -46,6 +46,14 @@ class ConstantModelTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0, places=5)
         pass
 
+    def test_get_inverse_hvp_with_lissa(self):
+        # Similar precision error as with CG.
+        self.influence_model.method = "lissa"
+        self.influence_model.scaling = 0.1
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[0], 2.0, places=5)
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0, places=5)
+        pass
+
     def test_get_test_gradient(self):
         self.assertAlmostEqual(
             self.influence_model.get_test_gradient(
@@ -127,6 +135,13 @@ class HighPrecisionTestCase(unittest.TestCase):
         )
 
     def test_get_inverse_hvp(self):
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[0], 2.0)
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0)
+        pass
+
+    def test_get_inverse_hvp_with_lissa(self):
+        self.influence_model.method = "lissa"
+        self.influence_model.scaling = 0.1
         self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[0], 2.0)
         self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0)
         pass
