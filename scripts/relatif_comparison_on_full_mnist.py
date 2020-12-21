@@ -6,29 +6,20 @@ import tensorflow as tf
 from influence.influence_model import InfluenceModel
 
 mnist_dataset = tf.keras.datasets.mnist
-(full_train_images, full_train_labels), (
-    full_test_images,
-    full_test_labels,
-) = mnist_dataset.load_data()
-
-train_images = full_train_images[(full_train_labels == 1) | (full_train_labels == 7)]
-train_labels = full_train_labels[(full_train_labels == 1) | (full_train_labels == 7)]
-
-test_images = full_test_images[(full_test_labels == 1) | (full_test_labels == 7)]
-test_labels = full_test_labels[(full_test_labels == 1) | (full_test_labels == 7)]
+(train_images, train_labels), (test_images, test_labels) = mnist_dataset.load_data()
 
 train_images = train_images / 255.0
 test_images = test_images / 255.0
 
-categorical_train_labels = (train_labels == 1).astype(np.float64).reshape((-1, 1))
-categorical_test_labels = (test_labels == 1).astype(np.float64).reshape((-1, 1))
+categorical_train_labels = tf.keras.utils.to_categorical(train_labels)
+categorical_test_labels = tf.keras.utils.to_categorical(test_labels)
 
 tf.keras.backend.set_floatx("float64")
 
 model = tf.keras.Sequential(
     [
         tf.keras.layers.Flatten(input_shape=(28, 28)),
-        tf.keras.layers.Dense(1, kernel_regularizer="l2", bias_regularizer="l2"),
+        tf.keras.layers.Dense(10, kernel_regularizer="l2", bias_regularizer="l2"),
     ]
 )
 
@@ -38,14 +29,14 @@ model.compile(
     metrics=["accuracy"],
 )
 
-model.load_weights("./output/binary_mnist_checkpoint")
+model.load_weights("./output/mnist_checkpoint")
 
-# Number of training points = 11706
-# Number of validation points = 1301
-# Number of test points = 2163
+# Number of training points = 54000
+# Number of validation points = 6000
+# Number of test points = 10000
 
-num_training_points = 1000
-num_test_points = 100
+num_training_points = 54
+num_test_points = 10
 
 influence_values = np.zeros((num_training_points, num_test_points))
 theta_relatif_values = np.zeros((num_training_points, num_test_points))
@@ -83,7 +74,7 @@ for i in range(num_training_points):
     )
 
 np.savez(
-    "./output/relatif_comparison_on_binary_mnist.npz",
+    "./output/relatif_comparison_on_full_mnist.npz",
     influence_values=influence_values,
     theta_relatif_values=theta_relatif_values,
     l_relatif_values=l_relatif_values,

@@ -199,7 +199,7 @@ class InfluenceModel(object):
         flat_training_gradient = np.concatenate(
             [tf.reshape(t, [-1]) for t in self.get_training_gradient()]
         )
-        
+
         estimates = []
 
         for i in range(self.lissa_samples):
@@ -249,19 +249,17 @@ class InfluenceModel(object):
 
             if self.verbose:
                 current_hvp = self.get_hvp(current_estimate)
-                flat_hvp = np.concatenate(
-                    [tf.reshape(t, [-1]) for t in current_hvp]
-                )
+                flat_hvp = np.concatenate([tf.reshape(t, [-1]) for t in current_hvp])
                 distance = np.linalg.norm(flat_hvp - flat_training_gradient)
                 print(
                     "Sample",
-                    i+1,
+                    i + 1,
                     "with depth",
                     self.lissa_depth,
                     "- Current error:",
                     distance,
                     ", Relative error:",
-                    distance / np.linalg.norm(flat_training_gradient)
+                    distance / np.linalg.norm(flat_training_gradient),
                 )
 
             estimates.append(
@@ -272,15 +270,13 @@ class InfluenceModel(object):
 
         if self.verbose:
             current_hvp = self.get_hvp(self.reshape_flat_vector(inverse_hvp))
-            flat_hvp = np.concatenate(
-                [tf.reshape(t, [-1]) for t in current_hvp]
-            )
+            flat_hvp = np.concatenate([tf.reshape(t, [-1]) for t in current_hvp])
             distance = np.linalg.norm(flat_hvp - flat_training_gradient)
             print(
                 "Overall error:",
                 distance,
                 ", Overall relative error:",
-                distance / np.linalg.norm(flat_training_gradient)
+                distance / np.linalg.norm(flat_training_gradient),
             )
 
         return inverse_hvp
