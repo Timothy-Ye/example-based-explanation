@@ -1,4 +1,6 @@
 
+.vscode/
+
 influence/__pycache__/
 
 notebooks/.ipynb_checkpoints/
