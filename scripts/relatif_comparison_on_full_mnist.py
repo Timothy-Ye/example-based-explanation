@@ -35,43 +35,33 @@ model.load_weights("./output/mnist_checkpoint")
 # Number of validation points = 6000
 # Number of test points = 10000
 
-num_training_points = 54
-num_test_points = 10
+num_training_points = 540
+num_test_points = 100
 
 influence_values = np.zeros((num_training_points, num_test_points))
 theta_relatif_values = np.zeros((num_training_points, num_test_points))
 l_relatif_values = np.zeros((num_training_points, num_test_points))
 
+influence_model = InfluenceModel(
+    model,
+    train_images,
+    categorical_train_labels,
+    test_images,
+    categorical_test_labels,
+    model.loss,
+    damping=0.2,
+    dtype=np.float64,
+    cg_tol=1e-03,
+)
+
 for i in range(num_training_points):
 
-    print("Computing influence of training point", i, "out of", num_training_points)
-
-    influence_model = InfluenceModel(
-        model,
-        train_images,
-        categorical_train_labels,
-        model.loss,
-        i,
-        damping=0.2,
-        dtype=np.float64,
-        cg_tol=1e-05,
-    )
+    print("Computing influence of training point", i, "out of", num_training_points)    
 
     for j in range(num_test_points):
-        influence_values[i, j] = influence_model.get_influence_on_loss(
-            test_images[j], categorical_test_labels[j]
-        )
-
-    theta_relatif_values[i] = influence_values[i] / np.linalg.norm(
-        influence_model.get_inverse_hvp()
-    )
-
-    flat_training_gradient = np.concatenate(
-        [tf.reshape(t, [-1]) for t in influence_model.get_training_gradient()]
-    )
-    l_relatif_values[i] = influence_values[i] / math.sqrt(
-        np.dot(influence_model.get_inverse_hvp(), flat_training_gradient)
-    )
+        influence_values[i, j] = influence_model.get_influence_on_loss(i, j)
+        theta_relatif_values[i, j] = influence_model.get_theta_relatif(i, j)
+        l_relatif_values[i, j] = influence_model.get_l_relatif(i, j)
 
 np.savez(
     "./output/relatif_comparison_on_full_mnist.npz",

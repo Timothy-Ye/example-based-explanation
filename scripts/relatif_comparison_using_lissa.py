@@ -41,8 +41,8 @@ model.load_weights("./output/binary_mnist_checkpoint")
 # Number of validation points = 1301
 # Number of test points = 2163
 
-num_training_points = 11706
-num_test_points = 2163
+num_training_points = 100
+num_test_points = 100
 
 influence_values = np.zeros((num_training_points, num_test_points))
 theta_relatif_values = np.zeros((num_training_points, num_test_points))
@@ -55,9 +55,11 @@ influence_model = InfluenceModel(
     binary_test_images,
     categorical_test_labels,
     model.loss,
-    damping=0.2,
+    method='lissa',
+    lissa_depth=500,
+    lissa_samples=2,
+    scaling=0.01,
     dtype=np.float64,
-    cg_tol=1e-05,
 )
 
 for i in range(num_training_points):
@@ -68,8 +70,9 @@ for i in range(num_training_points):
         theta_relatif_values[i, j] = influence_model.get_theta_relatif(i, j)
         l_relatif_values[i, j] = influence_model.get_l_relatif(i, j)
 
+
 np.savez(
-    "./output/relatif_comparison_on_binary_mnist.npz",
+    "./output/relatif_comparison_using_lissa.npz",
     influence_values=influence_values,
     theta_relatif_values=theta_relatif_values,
     l_relatif_values=l_relatif_values,

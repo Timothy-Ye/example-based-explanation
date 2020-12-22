@@ -25,8 +25,9 @@ class ConstantModelTestCase(unittest.TestCase):
             ConstantModel(),
             tf.constant([0.0]),
             tf.constant([0.0]),
+            tf.constant([0.0]),
+            tf.constant([0.0]),
             loss_fn,
-            0,
         )
 
     def test_get_hvp(self):
@@ -35,36 +36,40 @@ class ConstantModelTestCase(unittest.TestCase):
         pass
 
     def test_get_training_gradient(self):
-        self.assertAlmostEqual(self.influence_model.get_training_gradient()[0], 4.0)
-        self.assertAlmostEqual(self.influence_model.get_training_gradient()[1], 6.0)
+        self.assertAlmostEqual(self.influence_model.get_training_gradient(0)[0], 4.0)
+        self.assertAlmostEqual(self.influence_model.get_training_gradient(0)[1], 6.0)
         pass
 
     def test_get_inverse_hvp(self):
         # For float32, there is an error in order 1e-08.
         # This does not occur for float64, so assume it is just some precision limitation.
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[0], 2.0, places=5)
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0, places=5)
+        self.assertAlmostEqual(
+            self.influence_model.get_inverse_hvp(0)[0], 2.0, places=5
+        )
+        self.assertAlmostEqual(
+            self.influence_model.get_inverse_hvp(0)[1], 3.0, places=5
+        )
         pass
 
     def test_get_inverse_hvp_with_lissa(self):
         # Similar precision error as with CG.
         self.influence_model.method = "lissa"
         self.influence_model.scaling = 0.1
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[0], 2.0, places=5)
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0, places=5)
+        self.assertAlmostEqual(
+            self.influence_model.get_inverse_hvp(0)[0], 2.0, places=5
+        )
+        self.assertAlmostEqual(
+            self.influence_model.get_inverse_hvp(0)[1], 3.0, places=5
+        )
         pass
 
     def test_get_test_gradient(self):
         self.assertAlmostEqual(
-            self.influence_model.get_test_gradient(
-                tf.constant([0.0]), tf.constant([0.0])
-            )[0],
+            self.influence_model.get_test_gradient(0)[0],
             4.0,
         )
         self.assertAlmostEqual(
-            self.influence_model.get_test_gradient(
-                tf.constant([0.0]), tf.constant([0.0])
-            )[1],
+            self.influence_model.get_test_gradient(0)[1],
             6.0,
         )
         pass
@@ -72,9 +77,7 @@ class ConstantModelTestCase(unittest.TestCase):
     def test_get_influence_on_loss(self):
         # Carry-over precision loss from get_inverse_hvp().
         self.assertAlmostEqual(
-            self.influence_model.get_influence_on_loss(
-                tf.constant([0.0]), tf.constant([0.0])
-            ),
+            self.influence_model.get_influence_on_loss(0, 0),
             -26.0,
             places=5,
         )
@@ -83,9 +86,7 @@ class ConstantModelTestCase(unittest.TestCase):
     def test_get_theta_relatif(self):
         # Carry-over precision loss from get_inverse_hvp().
         self.assertAlmostEqual(
-            self.influence_model.get_theta_relatif(
-                tf.constant([0.0]), tf.constant([0.0])
-            ),
+            self.influence_model.get_theta_relatif(0, 0),
             -26.0 / math.sqrt(13.0),
             places=5,
         )
@@ -94,7 +95,7 @@ class ConstantModelTestCase(unittest.TestCase):
     def test_get_l_relatif(self):
         # Carry-over precision loss from get_inverse_hvp().
         self.assertAlmostEqual(
-            self.influence_model.get_l_relatif(tf.constant([0.0]), tf.constant([0.0])),
+            self.influence_model.get_l_relatif(0, 0),
             -26.0 / math.sqrt(26.0),
             places=5,
         )
@@ -103,10 +104,10 @@ class ConstantModelTestCase(unittest.TestCase):
     def test_get_new_parameters(self):
         # Carry-over precision loss from get_inverse_hvp().
         self.assertAlmostEqual(
-            self.influence_model.get_new_parameters()[0].numpy(), 0.0, places=5
+            self.influence_model.get_new_parameters(0)[0].numpy(), 0.0, places=5
         )
         self.assertAlmostEqual(
-            self.influence_model.get_new_parameters()[1].numpy(), 0.0, places=5
+            self.influence_model.get_new_parameters(0)[1].numpy(), 0.0, places=5
         )
         pass
 
@@ -129,21 +130,22 @@ class HighPrecisionTestCase(unittest.TestCase):
             ConstantModel(),
             tf.constant([0.0], dtype=tf.float64),
             tf.constant([0.0], dtype=tf.float64),
+            tf.constant([0.0]),
+            tf.constant([0.0]),
             loss_fn,
-            0,
             dtype=np.float64,
         )
 
     def test_get_inverse_hvp(self):
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[0], 2.0)
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0)
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp(0)[0], 2.0)
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp(0)[1], 3.0)
         pass
 
     def test_get_inverse_hvp_with_lissa(self):
         self.influence_model.method = "lissa"
         self.influence_model.scaling = 0.1
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[0], 2.0)
-        self.assertAlmostEqual(self.influence_model.get_inverse_hvp()[1], 3.0)
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp(0)[0], 2.0)
+        self.assertAlmostEqual(self.influence_model.get_inverse_hvp(0)[1], 3.0)
         pass
 
 

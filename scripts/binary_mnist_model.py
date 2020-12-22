@@ -2,22 +2,19 @@ import numpy as np
 import tensorflow as tf
 
 mnist_dataset = tf.keras.datasets.mnist
-(full_train_images, full_train_labels), (
-    full_test_images,
-    full_test_labels,
-) = mnist_dataset.load_data()
+(train_images, train_labels), (test_images, test_labels) = mnist_dataset.load_data()
 
-train_images = full_train_images[(full_train_labels == 1) | (full_train_labels == 7)]
-train_labels = full_train_labels[(full_train_labels == 1) | (full_train_labels == 7)]
+binary_train_images = train_images[(train_labels == 1) | (train_labels == 7)]
+binary_train_labels = train_labels[(train_labels == 1) | (train_labels == 7)]
 
-test_images = full_test_images[(full_test_labels == 1) | (full_test_labels == 7)]
-test_labels = full_test_labels[(full_test_labels == 1) | (full_test_labels == 7)]
+binary_test_images = test_images[(test_labels == 1) | (test_labels == 7)]
+binary_test_labels = test_labels[(test_labels == 1) | (test_labels == 7)]
 
-train_images = train_images / 255.0
-test_images = test_images / 255.0
+binary_train_images = binary_train_images / 255.0
+binary_test_images = binary_test_images / 255.0
 
-categorical_train_labels = (train_labels == 1).astype(np.float64).reshape((-1, 1))
-categorical_test_labels = (test_labels == 1).astype(np.float64).reshape((-1, 1))
+categorical_train_labels = ((binary_train_labels == 1).astype(np.float64).reshape((-1, 1)))
+categorical_test_labels = (binary_test_labels == 1).astype(np.float64).reshape((-1, 1))
 
 tf.keras.backend.set_floatx("float64")
 
@@ -34,7 +31,8 @@ model.compile(
     metrics=["accuracy"],
 )
 
-
-model.fit(train_images, categorical_train_labels, epochs=10, validation_split=0.1)
+model.fit(
+    binary_train_images, categorical_train_labels, epochs=10, validation_split=0.1
+)
 
 model.save_weights("./output/binary_mnist_checkpoint")
