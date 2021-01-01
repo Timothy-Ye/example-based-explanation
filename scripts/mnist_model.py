@@ -24,6 +24,6 @@ model.compile(
     metrics=["accuracy"],
 )
 
-model.fit(train_images, categorical_train_labels, epochs=100, validation_split=0.1)
+model.fit(train_images, categorical_train_labels, epochs=10, validation_split=0.1, shuffle=False)
 
 model.save_weights("./output/mnist_checkpoint")
