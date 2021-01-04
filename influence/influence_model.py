@@ -6,7 +6,7 @@ import tensorflow as tf
 
 
 class InfluenceModel(object):
-    """Class representing a TensorFlow model."""
+    """Class representing a TensorFlow model which uses influence functions."""
 
     # Maybe extend to up-weighted sets of points?
 
