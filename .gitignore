@@ -12,3 +12,5 @@ scripts/__pycache__/
 tests/__pycache__/
 
 representer/__pycache__/
+
+data/
