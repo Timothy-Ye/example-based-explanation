@@ -69,7 +69,7 @@ for i in range(num_training_points):
         l_relatif_values[i, j] = influence_model.get_l_relatif(i, j)
 
 np.savez(
-    "./output/relatif_comparison_on_binary_mnist.npz",
+    "./output/influence_model_on_binary_mnist.npz",
     influence_values=influence_values,
     theta_relatif_values=theta_relatif_values,
     l_relatif_values=l_relatif_values,
