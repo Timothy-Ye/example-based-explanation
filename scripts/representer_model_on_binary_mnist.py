@@ -1,9 +1,7 @@
-import math
-
 import numpy as np
 import tensorflow as tf
 
-from influence.influence_model import InfluenceModel
+from representer.representer_model import RepresenterModel
 
 mnist_dataset = tf.keras.datasets.mnist
 (train_images, train_labels), (test_images, test_labels) = mnist_dataset.load_data()
@@ -40,33 +38,26 @@ model.load_weights("./output/binary_mnist_checkpoint")
 num_training_points = 13007
 num_test_points = 2163
 
-influence_values = np.zeros((num_training_points, num_test_points))
-theta_relatif_values = np.zeros((num_training_points, num_test_points))
-l_relatif_values = np.zeros((num_training_points, num_test_points))
+feature_model = model.get_layer(index=0)
+prediction_network = model.get_layer(index=1)
 
-influence_model = InfluenceModel(
-    model,
+representer_values = np.zeros((num_training_points, num_test_points))
+
+representer_model = RepresenterModel(
+    feature_model,
+    prediction_network,
     binary_train_images,
     categorical_train_labels,
     binary_test_images,
-    categorical_test_labels,
-    model.loss,
-    damping=0.2,
-    dtype=np.float64,
-    cg_tol=1e-05,
+    model.loss
 )
 
 for i in range(num_training_points):
-
-    print("Computing influence values for training point", i, "out of", num_training_points)
+    print("Computing representer values of training point", i, "out of", num_training_points)
     for j in range(num_test_points):
-        influence_values[i, j] = influence_model.get_influence_on_loss(i, j)
-        theta_relatif_values[i, j] = influence_model.get_theta_relatif(i, j)
-        l_relatif_values[i, j] = influence_model.get_l_relatif(i, j)
+        representer_values[i, j] = representer_model.get_representer_value(i, j)
 
 np.savez(
-    "./output/influence_model_on_binary_mnist.npz",
-    influence_values=influence_values,
-    theta_relatif_values=theta_relatif_values,
-    l_relatif_values=l_relatif_values,
+    "./output/representer_model_on_binary_mnist.npz",
+    representer_values=representer_values,
 )

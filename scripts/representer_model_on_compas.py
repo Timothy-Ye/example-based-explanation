@@ -53,11 +53,11 @@ model.compile(
 
 model.load_weights("./output/compas_checkpoint")
 
-feature_model = lambda x : x
-prediction_network = model
-
 num_training_points = 4278
 num_test_points = 1000
+
+feature_model = lambda x : x
+prediction_network = model
 
 representer_values = np.zeros((num_training_points, num_test_points))
 

@@ -21,7 +21,7 @@ tf.keras.backend.set_floatx("float64")
 model = tf.keras.Sequential(
     [
         tf.keras.layers.Flatten(input_shape=(28, 28)),
-        tf.keras.layers.Dense(1, kernel_regularizer="l2", bias_regularizer="l2"),
+        tf.keras.layers.Dense(1, kernel_regularizer="l2", use_bias=False),
     ]
 )
 
@@ -32,7 +32,7 @@ model.compile(
 )
 
 model.fit(
-    binary_train_images, categorical_train_labels, epochs=10, validation_split=0.1
+    binary_train_images, categorical_train_labels, epochs=10
 )
 
 model.save_weights("./output/binary_mnist_checkpoint")

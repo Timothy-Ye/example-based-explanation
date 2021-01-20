@@ -32,12 +32,14 @@ class RepresenterModel(object):
         if len(training_inputs) != len(training_labels):
             raise ValueError(
                 "Training inputs and labels have different lengths: Inputs = "
-                + len(training_inputs)
+                + str(len(training_inputs))
                 + ", Labels = "
-                + len(training_labels)
+                + str(len(training_labels))
             )
 
         self.alpha_values = {}
+        self.training_features = {}
+        self.test_features = {}
 
     def get_alpha_value(self, training_idx):
         """Calcuates the alpha value for a given training point."""
@@ -49,7 +51,7 @@ class RepresenterModel(object):
             predicted_label = self.prediction_network(
                 self.feature_model(np.array([self.training_inputs[training_idx]]))
             )
-            loss = self.loss = self.loss_fn(
+            loss = self.loss_fn(
                 np.array([self.training_labels[training_idx]]), predicted_label
             )
 
@@ -65,13 +67,20 @@ class RepresenterModel(object):
     def get_representer_value(self, training_idx, test_idx):
         """Calculates the representer value for a training point given a test point."""
 
-        training_features = self.feature_model(
-            np.array([self.training_inputs[training_idx]])
-        )
-        test_features = self.feature_model(np.array([self.test_inputs[test_idx]]))
+        if training_idx not in self.training_features:
+            self.training_features[training_idx] = self.feature_model(
+                np.array([self.training_inputs[training_idx]])
+            )
+
+        if test_idx not in self.test_features:
+            self.test_features[test_idx] = self.feature_model(
+                np.array([self.test_inputs[test_idx]])
+            )
 
         representer_value = tf.math.reduce_sum(
-            tf.math.multiply(training_features, test_features)
+            tf.math.multiply(
+                self.training_features[training_idx], self.test_features[test_idx]
+            )
         ) * self.get_alpha_value(training_idx)
 
         return representer_value
