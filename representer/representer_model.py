@@ -65,7 +65,7 @@ class RepresenterModel(object):
         return alpha_value
 
     def get_representer_value(self, training_idx, test_idx):
-        """Calculates the representer value for a training point given a test point."""
+        """Calculates the representer values for a training point given a test point."""
 
         if training_idx not in self.training_features:
             self.training_features[training_idx] = self.feature_model(
