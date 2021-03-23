@@ -13,6 +13,9 @@ train_labels = full_train_labels[:num_training_points]
 test_images = full_test_images[:num_test_points]
 test_labels = full_test_labels[:num_test_points]
 
+train_images = train_images / 255.0
+test_images = test_images / 255.0
+
 categorical_train_labels = tf.keras.utils.to_categorical(train_labels, num_classes=10)
 categorical_test_labels = tf.keras.utils.to_categorical(test_labels, num_classes=10)
 
@@ -32,7 +35,7 @@ model.compile(
 )
 
 model.fit(
-    tf.reshape(train_images, [-1, 28, 28, 1]), categorical_train_labels, epochs=500
+    tf.reshape(train_images, [-1, 28, 28, 1]), categorical_train_labels, epochs=100
 )
 
 model.save_weights("./output/fashion_mnist_lr_checkpoint")
