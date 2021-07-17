@@ -41,7 +41,7 @@ num_test_points = 400
 def performance_metric(model):
     return model.evaluate(binary_test_images[:num_test_points],
                           categorical_test_labels[:num_test_points],
-                          verbose=0)[0]
+                          verbose=0)[1]
 
 def model_reset_fn(model):
     model.load_weights("./output/binary_mnist_untrained_lr")
@@ -57,13 +57,13 @@ shapley_model = ShapleyModel(
     model_reset_fn,
     model_train_fn,
     max_iters=1000,
-    truncate_threshold=0.05,
+    truncate_threshold=0.01,
     verbose=True
 )
 
 shapley_values = shapley_model.get_shapley_values()
 
 np.savez(
-    "./output/shapley_model_on_binary_mnist_lr.npz",
+    "./output/shapley_model_on_binary_mnist_lr_acc.npz",
     shapley_values=shapley_values
 )
