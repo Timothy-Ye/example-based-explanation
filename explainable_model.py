@@ -409,7 +409,7 @@ class ExplainableModel(object):
             epsilon = -1.0 / self.num_train_points
 
         return self.reshape_vector(
-            epsilon * self.get_train_ihvp(train_idx)
+            - epsilon * self.get_train_ihvp(train_idx)
             + self.flatten_tensors(self.model_parameters)
         )
 
