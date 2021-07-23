@@ -24,7 +24,7 @@ class ExplainableModel(object):
         l2=0.0,
         dtype=np.float64,
         ihvp_method="cg",
-        cg_damping=0.0,
+        ihvp_damping=0.0,
         cg_tol=1e-05,
         cg_maxiter=100,
         lissa_scaling=1.0,
@@ -78,7 +78,7 @@ class ExplainableModel(object):
         self.l2 = l2
         self.dtype = dtype
         self.ihvp_method = ihvp_method
-        self.cg_damping = cg_damping
+        self.ihvp_damping = ihvp_damping
         self.cg_tol = cg_tol
         self.cg_maxiter = cg_maxiter
         self.lissa_scaling = lissa_scaling
@@ -126,10 +126,13 @@ class ExplainableModel(object):
                 )
             )
 
+        # Tensor list needs to have datatype matching that of the model.
+        casted_vector = vector.astype(self.dtype)
+
         # Reshape x into list of tensors.
         return [
             tf.reshape(
-                vector[idxs[i] : idxs[i + 1]], tf.shape(self.model_parameters[i])
+                casted_vector[idxs[i] : idxs[i + 1]], tf.shape(self.model_parameters[i])
             )
             for i in range(len(self.model_parameters))
         ]
@@ -188,7 +191,7 @@ class ExplainableModel(object):
 
     def get_ihvp_cg(self, vector):
         """
-        Gets the inverse Hessian-vector product using conjugate gradient method.
+        Approximates the inverse Hessian-vector product using conjugate gradient method.
         """
 
         # Helper function which calculates Hessian-vector product from vector x.
@@ -206,6 +209,7 @@ class ExplainableModel(object):
                     unconnected_gradients=tf.UnconnectedGradients.ZERO,
                 )
 
+            # x needs to be converted to same dtype as model for this to work.
             hvp = outer_tape.gradient(
                 grads,
                 self.model_parameters,
@@ -214,7 +218,7 @@ class ExplainableModel(object):
             )
 
             # L2 regularisation and damping added at the end.
-            return self.flatten_tensors(hvp) + (2.0 * self.l2 + self.cg_damping) * x
+            return self.flatten_tensors(hvp) + (2.0 * self.l2 + self.ihvp_damping) * x
 
         def cg_loss_fn(x):
 
@@ -242,6 +246,58 @@ class ExplainableModel(object):
 
         return result.x
 
+    def get_ihvp_lissa(self, vector):
+        """
+        Approximates the inverse Hessian-vector product using LiSSA.
+        """
+
+        # v is used at each iteration, and needs to be in tensor form for TF2 operations.
+        reshaped_vector = self.reshape_vector(vector)
+        list_length = len(reshaped_vector)
+
+        estimates = []
+        rng = np.random.default_rng()
+
+        for i in range(self.lissa_samples):
+
+            current_estimate = reshaped_vector
+            idxs = rng.choice(self.num_train_points, size=self.lissa_depth)
+
+            for j in range(self.lissa_depth):
+
+                with tf.GradientTape() as outer_tape:
+                    with tf.GradientTape() as inner_tape:
+                        pred = self.model(self.train_x[np.newaxis, idxs[j]])
+                        loss = self.loss_fn(self.train_y[np.newaxis, idxs[j]], pred)
+
+                    grads = inner_tape.gradient(
+                        loss,
+                        self.model_parameters,
+                        unconnected_gradients=tf.UnconnectedGradients.ZERO,
+                    )
+
+                hvp = outer_tape.gradient(
+                    grads,
+                    self.model_parameters,
+                    output_gradients=current_estimate,
+                    unconnected_gradients=tf.UnconnectedGradients.ZERO,
+                )
+
+                # Recursively form new estimate in list of tensors format.
+                current_estimate = [
+                    reshaped_vector[k]
+                    + (1.0 - self.lissa_scaling * (2.0 * self.l2 + self.ihvp_damping))
+                    * current_estimate[k]
+                    - self.lissa_scaling * hvp[k]
+                    for k in range(list_length)
+                ]
+
+            estimates.append(
+                self.lissa_scaling * self.flatten_tensors(current_estimate)
+            )
+
+        return np.mean(estimates, axis=0)
+
     def get_train_ihvp(self, train_idx):
         """
         Gets inverse Hessian-vector product at a training point.
@@ -257,9 +313,7 @@ class ExplainableModel(object):
         if self.ihvp_method == "cg":
             self.train_ihvps[train_idx] = self.get_ihvp_cg(train_grad)
         elif self.ihvp_method == "lissa":
-            raise NotImplementedError(
-                "LiSSA has not yet been implemented for calculating IHVPs."
-            )
+            self.train_ihvps[train_idx] = self.get_ihvp_lissa(train_grad)
         else:
             raise ValueError(
                 "'{}' is not a supported method of calculating IHVPs.".format(
@@ -284,9 +338,7 @@ class ExplainableModel(object):
         if self.ihvp_method == "cg":
             self.test_ihvps[test_idx] = self.get_ihvp_cg(test_grad)
         elif self.ihvp_method == "lissa":
-            raise NotImplementedError(
-                "LiSSA has not yet been implemented for calculating IHVPs."
-            )
+            self.test_ihvps[test_idx] = self.get_ihvp_lissa(test_grad)
         else:
             raise ValueError(
                 "'{}' is not a supported method of calculating IHVPs.".format(
@@ -409,7 +461,7 @@ class ExplainableModel(object):
             epsilon = -1.0 / self.num_train_points
 
         return self.reshape_vector(
-            - epsilon * self.get_train_ihvp(train_idx)
+            -epsilon * self.get_train_ihvp(train_idx)
             + self.flatten_tensors(self.model_parameters)
         )
 
