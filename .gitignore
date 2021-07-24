@@ -1,22 +1,12 @@
 
-.vscode/
-
-influence/__pycache__/
+__pycache__/
 
 notebooks/.ipynb_checkpoints/
+
+old/
 
 output/
 
 scripts/__pycache__/
 
-tests/__pycache__/
-
-representer/__pycache__/
-
 untracked_notebooks/
-
-untracked_scripts/
-
-shapley/__pycache__/
-
-__pycache__/

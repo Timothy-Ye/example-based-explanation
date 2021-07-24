@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from shapley.shapley_model import ShapleyModel
+from data_shapley import get_shapley_values
 
 mnist_dataset = tf.keras.datasets.mnist
 (train_images, train_labels), (test_images, test_labels) = mnist_dataset.load_data()
@@ -33,7 +33,7 @@ model.compile(
     metrics=["accuracy"],
 )
 
-model.save_weights("./output/binary_mnist_untrained_lr")
+model.save_weights("./output/untrained_lr_on_binary_mnist")
 
 num_training_points = 13007
 num_test_points = 400
@@ -44,13 +44,13 @@ def performance_metric(model):
                           verbose=0)[0]
 
 def model_reset_fn(model):
-    model.load_weights("./output/binary_mnist_untrained_lr")
+    model.load_weights("./output/untrained_lr_on_binary_mnist")
 
 def model_train_fn(model, idxs):
     model.fit(binary_train_images[idxs],
         categorical_train_labels[idxs], verbose=0, shuffle=False)
 
-shapley_model = ShapleyModel(
+shapley_values = get_shapley_values(
     model,
     num_training_points,
     performance_metric,
@@ -61,9 +61,7 @@ shapley_model = ShapleyModel(
     verbose=True
 )
 
-shapley_values = shapley_model.get_shapley_values()
-
 np.savez(
-    "./output/shapley_model_on_binary_mnist_lr.npz",
+    "./output/lr_on_binary_mnist_shapley_loss",
     shapley_values=shapley_values
 )
