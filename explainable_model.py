@@ -97,8 +97,6 @@ class ExplainableModel(object):
 
         self.alpha_vals = {}
 
-    # TODO: Clean up usage of dtypes.
-
     def flatten_tensors(self, tensors):
         """
         Converts a list of TensorFlow tensors into a 1D NumPy array.
@@ -637,4 +635,3 @@ class ExplainableModel(object):
         self.alpha_vals = {}
 
     # TODO: Add verbose messages.
-    # TODO: Implement LiSSA for inverse HVP calculation.

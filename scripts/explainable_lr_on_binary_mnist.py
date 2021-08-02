@@ -115,5 +115,5 @@ np.savez_compressed(
 np.savez_compressed(
     "./output/lr_on_binary_mnist_preds",
     train_preds=model(train_x),
-    test_pred=model(test_x),
+    test_preds=model(test_x),
 )
