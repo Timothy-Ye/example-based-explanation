@@ -6,6 +6,7 @@ sns.set()
 
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import rbf_kernel
+from sklearn.manifold import TSNE
 
 from influential_points.utils.k_selector import select_top_sum_redun_k
 from influential_points.utils.k_selector import select_top_diverse_k
@@ -52,6 +53,8 @@ class ExperimentRunner(object):
         self.test_true = test_true
         self.train_preds = train_preds
         self.test_preds = test_preds
+
+        self.tsne = None
 
     def disp_global(self):
         """
@@ -611,3 +614,121 @@ class ExperimentRunner(object):
         ax.set_xticks(x+0.35-width/2)
         ax.set_xticklabels(labels)
         ax.legend(title=r"$k$-most influential", loc="upper right")
+
+    def fit_tsne(self, perplexity=30.0, init="pca"):
+        """
+        Projects all the training points onto a 2D space using TSNE, for visualisation.
+        """
+
+        reshaped_train_x = self.train_x.reshape((self.num_train_points, -1))
+
+        self.tsne = TSNE(perplexity=perplexity, init=init).fit_transform(reshaped_train_x)
+
+    def tsne_global(self, divine=False, gammas=None):
+        """
+        Visualises global examples in 2D space created by TSNE.
+        """
+
+        k = 3
+        reshaped_train_x = self.train_x.reshape((self.num_train_points, -1))
+
+        idxs = [
+            np.argsort(np.sum(self.inf, axis=1))[-k:],
+            np.argsort(np.sum(self.rif, axis=1))[-k:],
+            np.argsort(np.sum(self.gc, axis=1))[-k:],
+            np.argsort(np.sum(self.rp, axis=1))[-k:],
+            np.argsort(self.ds)[-k:],
+        ]
+
+        labels = [
+            "IF",
+            "RIF",
+            "GC",
+            "RP",
+            "DS"
+        ]
+
+        colours = range(5)
+
+        if divine:
+            idxs += [
+                select_top_diverse_k(np.sum(self.inf, axis=1), k, reshaped_train_x, gamma=gammas["inf"]),
+                select_top_diverse_k(np.sum(self.rif, axis=1), k, reshaped_train_x, gamma=gammas["rif"]),
+                select_top_diverse_k(np.sum(self.gc, axis=1), k, reshaped_train_x, gamma=gammas["gc"]),
+                select_top_diverse_k(np.sum(self.rp, axis=1), k, reshaped_train_x, gamma=gammas["rp"]),
+                select_top_diverse_k(self.ds, k, reshaped_train_x, gamma=gammas["ds"]),
+            ]
+
+            labels += [
+                "IF+DIVINE",
+                "RIF+DIVINE",
+                "GC+DIVINE",
+                "RP+DIVINE",
+                "DS+DIVINE"
+            ]
+
+            colours = range(10)
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        ax.scatter(self.tsne[:, 0], self.tsne[:, 1], color="C7")
+
+        for i in range(len(idxs)):
+            ax.scatter(self.tsne[idxs[i], 0], self.tsne[idxs[i], 1], color=hls[colours[i]], s=64, marker="D", edgecolors="black", label=labels[i])
+
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.legend(title="Method", loc="upper right")
+
+
+    def tsne_local(self, test_idx, divine=False, gammas=None):
+        """
+        Visualises global examples in 2D space created by TSNE.
+        """
+
+        k = 3
+        reshaped_train_x = self.train_x.reshape((self.num_train_points, -1))
+
+        idxs = [
+            np.argsort(self.inf[:, test_idx])[-k:],
+            np.argsort(self.rif[:, test_idx])[-k:],
+            np.argsort(self.gc[:, test_idx])[-k:],
+            np.argsort(self.rp[:, test_idx])[-k:],
+        ]
+
+        labels = [
+            "IF",
+            "RIF",
+            "GC",
+            "RP"
+        ]
+
+        colours = range(4)
+
+        if divine:
+            idxs += [
+                select_top_diverse_k(self.inf[:, test_idx], k, reshaped_train_x, gamma=gammas["inf"]),
+                select_top_diverse_k(self.rif[:, test_idx], k, reshaped_train_x, gamma=gammas["rif"]),
+                select_top_diverse_k(self.gc[:, test_idx], k, reshaped_train_x, gamma=gammas["gc"]),
+                select_top_diverse_k(self.rp[:, test_idx], k, reshaped_train_x, gamma=gammas["rp"]),
+            ]
+
+            labels += [
+                "IF+DIVINE",
+                "RIF+DIVINE",
+                "GC+DIVINE",
+                "RP+DIVINE"
+            ]
+
+            colours = range(8)
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        ax.scatter(self.tsne[:, 0], self.tsne[:, 1], color="C7")
+
+        for i in range(len(idxs)):
+            ax.scatter(self.tsne[idxs[i], 0], self.tsne[idxs[i], 1], color=hls[colours[i]], s=64, marker="D", edgecolors="black", label=labels[i])
+
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.legend(title="Method", loc="upper right")
