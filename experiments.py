@@ -93,10 +93,10 @@ class ExperimentRunner(object):
 
             for j in range(3):
                 ax[i, j].imshow(self.train_x[idxs[i][-j-1]], cmap=plt.cm.binary)
-                ax[i, j].set_xlabel("Label: {}".format(self.train_true[idxs[i][-j-1]]))
+                ax[i, j].set_xlabel("{}".format(self.train_true[idxs[i][-j-1]]))
 
                 ax[i, j+4].imshow(self.train_x[idxs[i][j]], cmap=plt.cm.binary)
-                ax[i, j+4].set_xlabel("Label: {}".format(self.train_true[idxs[i][j]]))
+                ax[i, j+4].set_xlabel("{}".format(self.train_true[idxs[i][j]]))
 
     def disp_local(self, test_idx):
         """
@@ -129,7 +129,7 @@ class ExperimentRunner(object):
 
         ax[0, 0].set_title("Test Point", fontdict={"fontsize": 14})
         ax[0, 0].imshow(self.test_x[test_idx], cmap=plt.cm.binary)
-        ax[0, 0].set_xlabel("Label: {}\nPredicted: {}".format(self.test_true[test_idx], self.test_preds[test_idx]))
+        ax[0, 0].set_xlabel("{}\nPredicted: {}".format(self.test_true[test_idx], self.test_preds[test_idx]))
 
         for i in range(4):
             ax[i, 2].set_ylabel(ylabels[i], fontdict={"fontsize": 14})
@@ -138,10 +138,10 @@ class ExperimentRunner(object):
 
             for j in range(3):
                 ax[i, j+2].imshow(self.train_x[idxs[i][-j-1]], cmap=plt.cm.binary)
-                ax[i, j+2].set_xlabel("Label: {}".format(self.train_true[idxs[i][-j-1]]))
+                ax[i, j+2].set_xlabel("{}".format(self.train_true[idxs[i][-j-1]]))
 
                 ax[i, j+6].imshow(self.train_x[idxs[i][j]], cmap=plt.cm.binary)
-                ax[i, j+6].set_xlabel("Label: {}".format(self.train_true[idxs[i][j]]))
+                ax[i, j+6].set_xlabel("{}".format(self.train_true[idxs[i][j]]))
 
         for i in range(1, 4):
             ax[i, 0].set_visible(False)
@@ -442,10 +442,10 @@ class ExperimentRunner(object):
 
             for j in range(3):
                 ax[i, j].imshow(self.train_x[normal_idxs[i][-j-1]], cmap=plt.cm.binary)
-                ax[i, j].set_xlabel("Label: {}".format(self.train_true[normal_idxs[i][-j-1]]))
+                ax[i, j].set_xlabel("{}".format(self.train_true[normal_idxs[i][-j-1]]))
 
                 ax[i, j+4].imshow(self.train_x[divine_idxs[i][j]], cmap=plt.cm.binary)
-                ax[i, j+4].set_xlabel("Label: {}".format(self.train_true[divine_idxs[i][j]]))
+                ax[i, j+4].set_xlabel("{}".format(self.train_true[divine_idxs[i][j]]))
 
     def divine_local(self, test_idx, gammas):
         """
@@ -488,7 +488,7 @@ class ExperimentRunner(object):
 
         ax[0, 0].set_title("Test Point", fontdict={"fontsize": 14})
         ax[0, 0].imshow(self.test_x[test_idx], cmap=plt.cm.binary)
-        ax[0, 0].set_xlabel("Label: {}\nPredicted: {}".format(self.test_true[test_idx], self.test_preds[test_idx]))
+        ax[0, 0].set_xlabel("{}\nPredicted: {}".format(self.test_true[test_idx], self.test_preds[test_idx]))
 
         for i in range(4):
             ax[i, 2].set_ylabel(ylabels[i], fontdict={"fontsize": 14})
@@ -497,10 +497,10 @@ class ExperimentRunner(object):
 
             for j in range(3):
                 ax[i, j+2].imshow(self.train_x[normal_idxs[i][-j-1]], cmap=plt.cm.binary)
-                ax[i, j+2].set_xlabel("Label: {}".format(self.train_true[normal_idxs[i][-j-1]]))
+                ax[i, j+2].set_xlabel("{}".format(self.train_true[normal_idxs[i][-j-1]]))
 
                 ax[i, j+6].imshow(self.train_x[divine_idxs[i][j]], cmap=plt.cm.binary)
-                ax[i, j+6].set_xlabel("Label: {}".format(self.train_true[divine_idxs[i][j]]))
+                ax[i, j+6].set_xlabel("{}".format(self.train_true[divine_idxs[i][j]]))
 
         for i in range(1, 4):
             ax[i, 0].set_visible(False)

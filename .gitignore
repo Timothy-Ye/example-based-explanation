@@ -9,4 +9,6 @@ output/
 
 scripts/__pycache__/
 
+untracked/
+
 untracked_notebooks/
