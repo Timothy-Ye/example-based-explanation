@@ -81,7 +81,7 @@ class ExperimentRunner(object):
             5,
             7,
             subplot_kw={'xticks':[], 'yticks':[]},
-            figsize=(8, 6)
+            figsize=(7, 6)
         )
 
         ax[0, 1].set_title("Positive Examples", fontdict={"fontsize": 14})
@@ -430,7 +430,7 @@ class ExperimentRunner(object):
             5,
             7,
             subplot_kw={'xticks':[], 'yticks':[]},
-            figsize=(8, 6)
+            figsize=(7, 6)
         )
 
         ax[0, 1].set_title("Base", fontdict={"fontsize": 14})
